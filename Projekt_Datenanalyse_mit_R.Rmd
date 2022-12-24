@@ -5,22 +5,141 @@ date: "2022-11-14"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+## Dataunderstanding und Zielsetzung
+
+In dem folgenden Report wird ein Datensatz analysiert welcher Immobiliendaten beinhaltet. Dieser wird zuerst erläutert, anschließend wird das Ziel des Reports definiert und zuletzt folgt die Analyse und Überprüfung der Hypothese.
+
+### Beschreibung des Datensatzes
+
+Der Datensatz besteht aus 2342 Zeilen und 21 Spalten. Die Beschreibung des Datesatzes folgt unter dem folgenden Code Block.
+
+```{r}
+# Import der Daten 
+df_immobilien <- read.csv(file="Dataset/data_for_training.csv", sep=";")
+print(paste("Shape: (", nrow(df_immobilien), ",", ncol(df_immobilien), ")"))
 ```
 
-## Importieren des Datensatzes
+```{r}
+# Beschreibung des Datensatzes
+head(df_immobilien)
+```
 
-Beschreibung
+1.  **A_Index:** Eindeutige Identifikationsnummer, nicht fortlaufend (durch Sampling in die ausgegebenen und zurückgehaltenen Daten)
+
+2.  **Anzahl Zimmer:** Gesamtanzahl der Zimmer (keine Küchen und Bäder eingerechnet)
+
+3.  **Ausbaustufe:** Anzahl der Ebenen oberhalb des Kellers
+
+    -   1 Ebene
+
+    -   2 Ebenen
+
+4.  **Baeder:** Anzahl der Badezimmer die nicht im Kellergeschoss (KG) liegen, Toiletten eingerechnet
+
+5.  **BaederKG:** Analog Baeder, aber im KG
+
+6.  **Baujahr:** Jahr in dem das Gebäude gebaut wurde
+
+7.  **EG_qm:** Größe der Wohnfläche in qm im Erdgeschoss
+
+8.  **Garage_qm:** Größe der Garage in qm
+
+9.  **Garagen:** Anzahl der Fahrzeuge, die in der Garage abgestellt werden können
+
+10. **Gesamteindruck:** Eindruck des Gesamtzustandes des Gebäudes insgesamt
+
+    -   5 Sehr gut
+
+    -   4 Gut
+
+    -   3 Durchschnitt
+
+    -   2 Schlecht
+
+    -   1 Sehr schlecht
+
+11. **Keller_Typ_qm:** Anzahl der qm im Typ des Kellers (siehe „Kellertyp" unten)
+
+12. **Keller_qm:** Anzahl der qm des gesamten Kellers
+
+13. **Kellerhoehe:** Höhe des Kellers
+
+    -   Sehr gut: ca. 250 cm
+
+    -   Gut: ca. 225 cm
+
+    -   Durchschnitt: ca. 200 cm
+
+    -   Schlecht: ca. 175 cm
+
+    -   Sehr schlecht: niedriger als 175 cm
+
+    -   Keine Angabe: kein Keller
+
+14. **Kellertyp:** Typ des Kellers
+
+    -   Guter Wohnraum
+
+    -   Mittlerer Wohnraum
+
+    -   Kein Wohnraum
+
+    -   Freizeitraum
+
+    -   Niedrige Qualität
+
+    -   Rohbau
+
+15. **Lage:** Bezirk, in dem die Immobilie steht
+
+16. **OG_qm:** Quadratmeter des Geschosses oberhalb des OG
+
+17. **Umgebaut:** Jahr, in dem größere Umbauten / Anbauten / Renovierungen stattfanden, wenn keine durchgeführt wurden entspricht dies dem Baujahr Verkaufsjahr: Jahr des Verkaufs
+
+18. **Verkaufsmonat:** Monat des Verkaufs
+
+19. **Wohlflaeche_qm:** Wohnfläche in qm
+
+20. **Z_Verkaufspreis:** Verkaufspreis in Euro
+
+### Zielsetzung und Hypothesen
+
+Der Datensatz soll dazu verwendet werden Aufschluss über den Zusammenhang bestimmter Attribute mit dem Kaufpreis zu bekommen. Basierend auf den Erkenntnissen des Reports sollen grundlegende Regeln abgeleitet werden, welche bei der Investition in eine Immobilie beachtet werden sollten.
+
+Die folgenden Hypothesen sollen dabei genauer betrachtet werden:
+
+-   **In welchen Bezirken erlebt der Kaufpreis der Immobilien das größte Wachstum?**
+
+    In dieser Frage soll Aufschluss über den Zusammenhang zwischen dem Gebiet der Immobilie und dem Kaufpreis gewonnen werden. Welche Gebiete haben besonders teure Immobilien? Zusätzlich ist für eine Investition wichtig, in Gebieten zu kaufen in welchen sich der Kaufpreis in Zukunft erhöhen wird. Somit stellt sich die Frage welche Gebiete in der Vergangenheit eine Preiserhöhung erfahren haben.
+
+    Bei der Wahl des Bezirks werden sich Wachstum und die zu Verkauf stehenden Immobilien gegensätzlich verhalten, da der Verkaufspreis mit der Knappheit des Gutes steigt.
+
+-   **Aus welchem Baujahr sind Häuser besonders begehrt?**
+
+    Mit dieser Frage sollen Zeitperioden herausgefunden werden in welchen Häuser aufgrund ihres Baujahrs einen hohen Preis erzielen.
+
+    Die Erwartung ist, das neue Häuser generell einen höheren Verkaufspreis erzielen. Jedoch können alte Häuser, welche Renoviert sind für liebhaber Attraktive Immobilien sein, welche demnach einen hohen Verkaufspreis erzielen.
+
+-   **Im welchen Verhältnis steht der Kaufpreis eines Neubaus mit der einer renovierten Immobilie?**
+
+    Anhand des Verhältnisses soll bestimmt werden, wie sehr sich der Kaufpreis einer umgebauten Immobilie im gleichen Jahr eines Neubaus zu dem unterscheidet. Die Erkenntnis dient zur Verständigung wie viel Wert ein Neubau einer durchschnittlichen neuen umgebauten Immobilien hat.
+
+    Neubauten werden höhere Preise erzielen als renovierte Häuser.
+
+## Laden der Daten (Data Engineering)
+
+In diesem Block wird das Data Engineering durchgeführt. Der Datensatz soll bereinigt und neue Features erstellt werden, falls dies der Analyse dienlich ist.
+
+```{r}
+str(df_immobilien)
 ```
-# Import 
-library(readr)
-Electric_Vehicle_Population_Data <- read_csv("Dataset/Electric_Vehicle_Population_Data.csv", 
-                                              col_types = cols(County = col_character(), 
-                                                               `Postal Code` = col_number(), `Model Year` = col_number(), 
-                                                               `Electric Range` = col_number(), 
-                                                               `Base MSRP` = col_number(), `Legislative District` = col_number(), 
-                                                               `DOL Vehicle ID` = col_number(), 
-                                                               `2020 Census Tract` = col_number()))
-kable(Electric_Vehicle_Population_Data)
+
+Die Datentypen der in dem Dataframe enthaltenen Features entsprechen den in der Beschreibun des Datensatzes angebenen Werten. Somit muss hier keine Anpassung vorgenommen werden. Jedoch fällt hier auf dass der Verkaufspreis nur Integer Werte beinhaltet. Dies ist interessant, da Preise generell stetig sind, jedoch bei hohen Beträgen nicht weiter verwunderlich.
+
+```{r}
+data.frame(unclass(summary(df_immobilien)), check.names = FALSE, stringsAsFactors = FALSE)
 ```
+
+Die Wertebereiche der numerischen Features weisen keine Auffälligkeiten
+
+## 

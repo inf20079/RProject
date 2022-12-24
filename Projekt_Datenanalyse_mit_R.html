@@ -357,19 +357,215 @@ display: none;
 </div>
 
 
-<div id="importieren-des-datensatzes" class="section level2">
-<h2>Importieren des Datensatzes</h2>
-<p>Beschreibung</p>
-<pre><code># Import 
-library(readr)
-Electric_Vehicle_Population_Data &lt;- read_csv(&quot;Dataset/Electric_Vehicle_Population_Data.csv&quot;, 
-                                              col_types = cols(County = col_character(), 
-                                                               `Postal Code` = col_number(), `Model Year` = col_number(), 
-                                                               `Electric Range` = col_number(), 
-                                                               `Base MSRP` = col_number(), `Legislative District` = col_number(), 
-                                                               `DOL Vehicle ID` = col_number(), 
-                                                               `2020 Census Tract` = col_number()))
-kable(Electric_Vehicle_Population_Data)</code></pre>
+<div id="dataunderstanding-und-zielsetzung" class="section level2">
+<h2>Dataunderstanding und Zielsetzung</h2>
+<p>In dem folgenden Report wird ein Datensatz analysiert welcher
+Immobiliendaten beinhaltet. Dieser wird zuerst erläutert, anschließend
+wird das Ziel des Reports definiert und zuletzt folgt die Analyse und
+Überprüfung der Hypothese.</p>
+<div id="beschreibung-des-datensatzes" class="section level3">
+<h3>Beschreibung des Datensatzes</h3>
+<p>Der Datensatz besteht aus 2342 Zeilen und 21 Spalten. Die
+Beschreibung des Datesatzes folgt unter dem folgenden Code Block.</p>
+<pre class="r"><code>library(Hmisc)</code></pre>
+<pre><code>## Loading required package: lattice</code></pre>
+<pre><code>## Loading required package: survival</code></pre>
+<pre><code>## Loading required package: Formula</code></pre>
+<pre><code>## Loading required package: ggplot2</code></pre>
+<pre><code>## 
+## Attaching package: &#39;Hmisc&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     format.pval, units</code></pre>
+<pre class="r"><code># Import der Daten 
+df_immobilien &lt;- read.csv(file=&quot;Dataset/data_for_training.csv&quot;, sep=&quot;;&quot;)
+print(paste(&quot;Shape: (&quot;, nrow(df_immobilien), &quot;,&quot;, ncol(df_immobilien), &quot;)&quot;))</code></pre>
+<pre><code>## [1] &quot;Shape: ( 2342 , 21 )&quot;</code></pre>
+<pre class="r"><code># Beschreibung des Datensatzes
+head(df_immobilien)</code></pre>
+<pre><code>##   A_Index AnzahlZimmer Ausbaustufe Baeder BaederKG Baujahr EG_qm Garage_qm
+## 1    2358            3     1 Ebene      2        1    1992   125        49
+## 2     266            2     1 Ebene      2        1    2010   170        79
+## 3    1169            2     1 Ebene      2        0    2015   119        40
+## 4    2564            2    2 Ebenen      3        1    2015    64        40
+## 5     169            3     1 Ebene      2        0    2021   103        39
+## 6     435            2     1 Ebene      2        1    1988    89        27
+##   Garagen Gesamteindruck Keller_Typ_qm Keller_qm  Kellerhoehe
+## 1       2              3            88       116          Gut
+## 2       3              3           141       168          Gut
+## 3       2              3             0       119          Gut
+## 4       2              3            48        64          Gut
+## 5       2              3             3       103          Gut
+## 6       1              4            10        89 Durchschnitt
+##            Kellertyp      Lage OG_qm Umgebaut Verkaufsjahr Verkaufsmonat
+## 1     Guter Wohnraum Bezirk 19     0     1992         2021             6
+## 2     Guter Wohnraum Bezirk 16     0     2010         2020             7
+## 3             Rohbau Bezirk 18     0     2015         2018             3
+## 4     Guter Wohnraum Bezirk 18    73     2016         2020            10
+## 5     Guter Wohnraum  Bezirk 8     0     2021         2022             3
+## 6 Mittlerer Wohnraum Bezirk 17     0     1988         2018             4
+##   Wohnflaeche_qm Z_Verkaufspreis
+## 1            125          187500
+## 2            170          350000
+## 3            119          171750
+## 4            138          154000
+## 5            103          213899
+## 6             89          137500</code></pre>
+<ol style="list-style-type: decimal">
+<li><p><strong>A_Index:</strong> Eindeutige Identifikationsnummer, nicht
+fortlaufend (durch Sampling in die ausgegebenen und zurückgehaltenen
+Daten)</p></li>
+<li><p><strong>Anzahl Zimmer:</strong> Gesamtanzahl der Zimmer (keine
+Küchen und Bäder eingerechnet)</p></li>
+<li><p><strong>Ausbaustufe:</strong> Anzahl der Ebenen oberhalb des
+Kellers</p>
+<ul>
+<li><p>1 Ebene</p></li>
+<li><p>2 Ebenen</p></li>
+</ul></li>
+<li><p><strong>Baeder:</strong> Anzahl der Badezimmer die nicht im
+Kellergeschoss (KG) liegen, Toiletten eingerechnet</p></li>
+<li><p><strong>BaederKG:</strong> Analog Baeder, aber im KG</p></li>
+<li><p><strong>Baujahr:</strong> Jahr in dem das Gebäude gebaut
+wurde</p></li>
+<li><p><strong>EG_qm:</strong> Größe der Wohnfläche in qm im
+Erdgeschoss</p></li>
+<li><p><strong>Garage_qm:</strong> Größe der Garage in qm</p></li>
+<li><p><strong>Garagen:</strong> Anzahl der Fahrzeuge, die in der Garage
+abgestellt werden können</p></li>
+<li><p><strong>Gesamteindruck:</strong> Eindruck des Gesamtzustandes des
+Gebäudes insgesamt</p>
+<ul>
+<li><p>5 Sehr gut</p></li>
+<li><p>4 Gut</p></li>
+<li><p>3 Durchschnitt</p></li>
+<li><p>2 Schlecht</p></li>
+<li><p>1 Sehr schlecht</p></li>
+</ul></li>
+<li><p><strong>Keller_Typ_qm:</strong> Anzahl der qm im Typ des Kellers
+(siehe „Kellertyp” unten)</p></li>
+<li><p><strong>Keller_qm:</strong> Anzahl der qm des gesamten
+Kellers</p></li>
+<li><p><strong>Kellerhoehe:</strong> Höhe des Kellers</p>
+<ul>
+<li><p>Sehr gut: ca. 250 cm</p></li>
+<li><p>Gut: ca. 225 cm</p></li>
+<li><p>Durchschnitt: ca. 200 cm</p></li>
+<li><p>Schlecht: ca. 175 cm</p></li>
+<li><p>Sehr schlecht: niedriger als 175 cm</p></li>
+<li><p>Keine Angabe: kein Keller</p></li>
+</ul></li>
+<li><p><strong>Kellertyp:</strong> Typ des Kellers</p>
+<ul>
+<li><p>Guter Wohnraum</p></li>
+<li><p>Mittlerer Wohnraum</p></li>
+<li><p>Kein Wohnraum</p></li>
+<li><p>Freizeitraum</p></li>
+<li><p>Niedrige Qualität</p></li>
+<li><p>Rohbau</p></li>
+</ul></li>
+<li><p><strong>Lage:</strong> Bezirk, in dem die Immobilie
+steht</p></li>
+<li><p><strong>OG_qm:</strong> Quadratmeter des Geschosses oberhalb des
+OG</p></li>
+<li><p><strong>Umgebaut:</strong> Jahr, in dem größere Umbauten /
+Anbauten / Renovierungen stattfanden, wenn keine durchgeführt wurden
+entspricht dies dem Baujahr Verkaufsjahr: Jahr des Verkaufs</p></li>
+<li><p><strong>Verkaufsmonat:</strong> Monat des Verkaufs</p></li>
+<li><p><strong>Wohlflaeche_qm:</strong> Wohnfläche in qm</p></li>
+<li><p><strong>Z_Verkaufspreis:</strong> Verkaufspreis in Euro</p></li>
+</ol>
+</div>
+<div id="zielsetzung-und-hypothesen" class="section level3">
+<h3>Zielsetzung und Hypothesen</h3>
+<p>Der Datensatz soll dazu verwendet werden Aufschluss über den
+Zusammenhang bestimmter Attribute mit dem Kaufpreis zu bekommen.
+Basierend auf den Erkenntnissen des Reports sollen grundlegende Regeln
+abgeleitet werden, welche bei der Investition in eine Immobilie beachtet
+werden sollten.</p>
+<p>Die folgenden Hypothesen sollen dabei genauer betrachtet werden:</p>
+<ul>
+<li><p><strong>In welchen Bezirken erlebt der Kaufpreis der Immobilien
+das größte Wachstum?</strong></p>
+<p>In dieser Frage soll Aufschluss über den Zusammenhang zwischen dem
+Gebiet der Immobilie und dem Kaufpreis gewonnen werden. Welche Gebiete
+haben besonders teure Immobilien? Zusätzlich ist für eine Investition
+wichtig, in Gebieten zu kaufen in welchen sich der Kaufpreis in Zukunft
+erhöhen wird. Somit stellt sich die Frage welche Gebiete in der
+Vergangenheit eine Preiserhöhung erfahren haben.</p>
+<p>Bei der Wahl des Bezirks werden sich Wachstum und die zu Verkauf
+stehenden Immobilien gegensätzlich verhalten, da der Verkaufspreis mit
+der Knappheit des Gutes steigt.</p></li>
+<li><p><strong>Aus welchem Baujahr sind Häuser besonders
+begehrt?</strong></p>
+<p>Mit dieser Frage sollen Zeitperioden herausgefunden werden in welchen
+Häuser aufgrund ihres Baujahrs einen hohen Preis erzielen.</p>
+<p>Die Erwartung ist, das neue Häuser generell einen höheren
+Verkaufspreis erzielen. Jedoch können alte Häuser, welche Renoviert sind
+für liebhaber Attraktive Immobilien sein, welche demnach einen hohen
+Verkaufspreis erzielen.</p></li>
+<li><p><strong>Im welchen Verhältnis steht der Kaufpreis eines Neubaus
+mit der einer renovierten Immobilie?</strong></p>
+<p>Anhand des Verhältnisses soll bestimmt werden, wie sehr sich der
+Kaufpreis einer umgebauten Immobilie im gleichen Jahr eines Neubaus zu
+dem unterscheidet. Die Erkenntnis dient zur Verständigung wie viel Wert
+ein Neubau einer durchschnittlichen neuen umgebauten Immobilien hat.</p>
+<p>Neubauten werden höhere Preise erzielen als renovierte
+Häuser.</p></li>
+</ul>
+</div>
+</div>
+<div id="laden-der-daten-data-engineering" class="section level2">
+<h2>Laden der Daten (Data Engineering)</h2>
+<p>In diesem Block wird das Data Engineering durchgeführt. Der Datensatz
+soll bereinigt und neue Features erstellt werden, falls dies der Analyse
+dienlich ist.</p>
+<pre class="r"><code>data.frame(unclass(summary(df_immobilien)), check.names = FALSE, stringsAsFactors = FALSE)</code></pre>
+<pre><code>##              A_Index    AnzahlZimmer        Ausbaustufe          Baeder
+## X   Min.   :   0.0   Min.   :0.000   Length:2342        Min.   :0.000  
+## X.1 1st Qu.: 649.2   1st Qu.:2.000   Class :character   1st Qu.:1.000  
+## X.2 Median :1310.5   Median :3.000   Mode  :character   Median :2.000  
+## X.3 Mean   :1302.7   Mean   :2.855                 &lt;NA&gt; Mean   :1.906  
+## X.4 3rd Qu.:1951.8   3rd Qu.:3.000                 &lt;NA&gt; 3rd Qu.:2.000  
+## X.5 Max.   :2602.0   Max.   :8.000                 &lt;NA&gt; Max.   :6.000  
+##             BaederKG        Baujahr            EG_qm        Garage_qm
+## X   Min.   :0.0000   Min.   :1884   Min.   : 28.00   Min.   :  0.00  
+## X.1 1st Qu.:0.0000   1st Qu.:1964   1st Qu.: 73.00   1st Qu.: 26.00  
+## X.2 Median :0.0000   Median :1982   Median : 89.00   Median : 39.00  
+## X.3 Mean   :0.4915   Mean   :1981   Mean   : 95.86   Mean   : 38.29  
+## X.4 3rd Qu.:1.0000   3rd Qu.:2009   3rd Qu.:114.00   3rd Qu.: 48.00  
+## X.5 Max.   :3.0000   Max.   :2022   Max.   :324.00   Max.   :126.00  
+##             Garagen  Gesamteindruck    Keller_Typ_qm        Keller_qm
+## X   Min.   :0.000   Min.   :1.000   Min.   :  0.00   Min.   :  0.00  
+## X.1 1st Qu.:1.000   1st Qu.:3.000   1st Qu.:  0.00   1st Qu.: 66.00  
+## X.2 Median :2.000   Median :3.000   Median : 32.00   Median : 81.50  
+## X.3 Mean   :1.707   Mean   :3.454   Mean   : 36.76   Mean   : 86.24  
+## X.4 3rd Qu.:2.000   3rd Qu.:4.000   3rd Qu.: 61.00   3rd Qu.:105.00  
+## X.5 Max.   :5.000   Max.   :5.000   Max.   :194.00   Max.   :272.00  
+##            Kellerhoehe          Kellertyp               Lage            OG_qm
+## X   Length:2342        Length:2342        Length:2342        Min.   :  0.00  
+## X.1 Class :character   Class :character   Class :character   1st Qu.:  0.00  
+## X.2 Mode  :character   Mode  :character   Mode  :character   Median :  0.00  
+## X.3               &lt;NA&gt;               &lt;NA&gt;               &lt;NA&gt; Mean   : 28.54  
+## X.4               &lt;NA&gt;               &lt;NA&gt;               &lt;NA&gt; 3rd Qu.: 59.00  
+## X.5               &lt;NA&gt;               &lt;NA&gt;               &lt;NA&gt; Max.   :175.00  
+##           Umgebaut   Verkaufsjahr    Verkaufsmonat Wohnflaeche_qm
+## X   Min.   :1962   Min.   :2018   Min.   : 1.000    Min.   : 28  
+## X.1 1st Qu.:1976   1st Qu.:2019   1st Qu.: 4.000    1st Qu.: 93  
+## X.2 Median :2002   Median :2020   Median : 6.000    Median :121  
+## X.3 Mean   :1995   Mean   :2020   Mean   : 6.128    Mean   :125  
+## X.4 3rd Qu.:2014   3rd Qu.:2021   3rd Qu.: 8.000    3rd Qu.:146  
+## X.5 Max.   :2022   Max.   :2022   Max.   :12.000    Max.   :380  
+##      Z_Verkaufspreis
+## X   Min.   : 13100  
+## X.1 1st Qu.:130000  
+## X.2 Median :161950  
+## X.3 Mean   :180444  
+## X.4 3rd Qu.:213882  
+## X.5 Max.   :755000</code></pre>
+</div>
+<div id="section" class="section level2">
+<h2></h2>
 </div>
 
 
