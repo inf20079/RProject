@@ -140,6 +140,12 @@ Die Datentypen der in dem Dataframe enthaltenen Features entsprechen den in der 
 data.frame(unclass(summary(df_immobilien)), check.names = FALSE, stringsAsFactors = FALSE)
 ```
 
-Die Wertebereiche der numerischen Features weisen keine Auffälligkeiten
+Die Wertebereiche der numerishen Features weisen keine Auffälligkeiten auf. Aufgrund dieser Auswertung können noch keine Fehler in den Daten erkannt werden. Wenn man die Features betrachtet , die Daten über die beschaffenheit der Zimmer beschreibt (AnzahlZimmer, Garagen, Baeder, BaederKG) starten diese bei 0 und beinhalten keine nicht Integer Werte. Betrachten wir die Zeitangaben (Baujahr, Verkaufsjahr, Verkaufsmonat) sind diese Integer Werte. Aus dem Wertebereich der Jahrszahlen können auch keine unplausiblen Outlier erkannt werden. Die Angabe des Monats beinhaltet nur die zugelassenen 0-12 Integerwerte.
 
-## 
+```{r}
+df_immobilien[df_immobilien["Baujahr"] <= df_immobilien["Umgebaut"], ]
+```
+
+```{r}
+df_immobilien
+```
