@@ -126,15 +126,54 @@ Die folgenden Hypothesen sollen dabei genauer betrachtet werden:
 
     Neubauten werden höhere Preise erzielen als renovierte Häuser.
 
-## Laden der Daten (Data Engineering)
+## Laden der Daten
 
-In diesem Block wird das Data Engineering durchgeführt. Der Datensatz soll bereinigt und neue Features erstellt werden, falls dies der Analyse dienlich ist.
+In diesem Block werden die Daten geladen und Fehler in diesen behoben.
 
 ```{r}
 str(df_immobilien)
 ```
 
-Die Datentypen der in dem Dataframe enthaltenen Features entsprechen den in der Beschreibun des Datensatzes angebenen Werten. Somit muss hier keine Anpassung vorgenommen werden. Jedoch fällt hier auf dass der Verkaufspreis nur Integer Werte beinhaltet. Dies ist interessant, da Preise generell stetig sind, jedoch bei hohen Beträgen nicht weiter verwunderlich.
+Die Datentypen der in dem Dataframe enthaltenen Features entsprechen den in der Beschreibung des Datensatzes angebenen Werten. Somit muss hier keine Anpassung vorgenommen werden. Jedoch fällt hier auf dass der Verkaufspreis nur Integer Werte beinhaltet. Dies ist interessant, da Preise generell stetig sind, jedoch bei hohen Beträgen nicht weiter verwunderlich.
+
+```{r}
+library(skimr)
+skim(df_immobilien)
+```
+
+Alle Features besitzen kein Nullwerte und sind vollständig. Nun müssen die Features im einzelnen betrachtet werden um potentielle Null Werte zu entfernen. wDer Datensatz besitzt zusätzlich keine Ordnung der Daten.
+
+```{r}
+cat_cols <- c("Ausbaustufe", "Gesamteindruck", "Kellerhoehe", "Kellertyp", "Lage")
+for(cat_col in cat_cols) {
+  print(paste("Unique values of ", cat_col, ":"))
+  print(unique(df_immobilien[cat_col])[, cat_col])
+}
+```
+
+Die beiden kategorischen Features Kellerhoehe und Kellertyp beinhalten bei fehlendem Keller den Wert "0" dieser wird umbenannt. Das Feature Lage beinhaltet auch einen "0" Wert, da dieser sich jedoch nicht aus der Beschreibung des Datensatzes erschließt, handelt es sich dabei um Outlier, die entfernt werden müssen.
+
+```{r}
+# Umbennenung kategorische Werte
+df_immobilien["Kellerhoehe"][df_immobilien["Kellerhoehe"] == "0"] <- "Kein Keller"
+df_immobilien["Kellertyp"][df_immobilien["Kellertyp"] == "0"] <- "Kein Keller"
+# Entfernen outlier Lage
+df_immobilien <- df_immobilien[df_immobilien["Lage"] != "0", ]
+```
+
+## Transformation der Daten
+
+In dem folgenden Block werden die Daten transformiert/bearbeitet um diese auf die Analyse vorzubereiten. Der Datensatz soll bereinigt und neue Features erstellt werden, falls dies der Analyse dienlich ist.
+
+```{r}
+df_immobilien$Ausbaustufe <- factor(df_immobilien[, "Ausbaustufe"])
+df_immobilien$Gesamteindruck <- factor(df_immobilien[, "Gesamteindruck"])
+df_immobilien$Kellerhoehe <- factor(df_immobilien[, "Kellerhoehe"])
+df_immobilien$Kellertyp <- factor(df_immobilien[, "Kellertyp"])
+df_immobilien$Lage <- factor(df_immobilien[, "Lage"])
+```
+
+Die kategorischen Features (Ausbaustufe, Gesamteindruck, Kellerhoehe, Kellertyp, Lage) werden im Anschluss in Faktoren konvertiert.
 
 ```{r}
 data.frame(unclass(summary(df_immobilien)), check.names = FALSE, stringsAsFactors = FALSE)
@@ -143,9 +182,93 @@ data.frame(unclass(summary(df_immobilien)), check.names = FALSE, stringsAsFactor
 Die Wertebereiche der numerishen Features weisen keine Auffälligkeiten auf. Aufgrund dieser Auswertung können noch keine Fehler in den Daten erkannt werden. Wenn man die Features betrachtet , die Daten über die beschaffenheit der Zimmer beschreibt (AnzahlZimmer, Garagen, Baeder, BaederKG) starten diese bei 0 und beinhalten keine nicht Integer Werte. Betrachten wir die Zeitangaben (Baujahr, Verkaufsjahr, Verkaufsmonat) sind diese Integer Werte. Aus dem Wertebereich der Jahrszahlen können auch keine unplausiblen Outlier erkannt werden. Die Angabe des Monats beinhaltet nur die zugelassenen 0-12 Integerwerte.
 
 ```{r}
-df_immobilien[df_immobilien["Baujahr"] <= df_immobilien["Umgebaut"], ]
+# Entfernen von Immobilien mit ungültigem Baujahr
+df_immobilien <- df_immobilien[df_immobilien["Baujahr"] <= df_immobilien["Umgebaut"], ]
+# QM bei nicht bestehendem OG
+df_immobilien <- df_immobilien[(df_immobilien["OG_qm"] > 0) & ((df_immobilien["Ausbaustufe"] == "2 Ebenen") | (df_immobilien["Ausbaustufe"] == "3 Ebenen")) | (df_immobilien["OG_qm"] == 0) & (df_immobilien["Ausbaustufe"] == "1 Ebene"), ]
+# Bestehende Garage mit keinen QM
+df_immobilien <- df_immobilien[(df_immobilien["Garage_qm"] > 0) & (df_immobilien["Garagen"] > 0), ]
+# kein bestehender Keller trotz befüllter Keller Features
+df_immobilien <- df_immobilien[((df_immobilien["Kellerhoehe"] == "Kein  Keller") & ((df_immobilien["Keller_Typ_qm"] == 0) | (df_immobilien["Keller_qm"] == 0) |(df_immobilien["Kellertyp"] == "Kein Keller") | (df_immobilien["BaederKG"] == 0)) | (df_immobilien["Kellerhoehe"] != "Kein Keller")), ]
+```
+
+Wir entfernen logisch nicht plausible Werte aus dem Datensatz mithilfe von subsetting. Die logischen Schlüsse werden im Anschluss erklärt:
+
+1.  Die Immobilie wurde renoviert bevor diese erbaut wurden
+2.  Die Immobilie besitzt kein Obergeschoss, jedoch wird eine qm Anzahl angegeben oder die Immobilie besitzt ein Obergeschoss und es ist keine qm Anzahl angegeben.
+3.  Die Immobilie besitzt eine Garage, diese besitzt jedoch keine qm Anzahl.
+4.  Es ist kein Keller vorhanden, jedoch sind die Features des Kellers befüllt.
+
+## Analyse der Daten
+
+Im folgenden Block werden die Daten visualisiert und analysiert. Im Anschluss wird ein Fazit gezogen.
+
+**In welchen Bezirken erlebt der Kaufpreis der Immobilien das größte Wachstum?**
+
+Zunächst wird die Compound Annual Growth Rate für die Bezirke berechnet. Dies soll Aufschluss über die Preisentwicklung der Bezirke über die vier abgebildeten Verkaufsjahre geben.
+
+```{r}
+# Berechnen der Compound annual growth rate
+max_year <- max(df_immobilien$Verkaufsjahr)
+min_year <- min(df_immobilien$Verkaufsjahr)
+n = max_year - min_year
+# group mean per year
+library(dplyr)
+df_immobilien_grouped_lage <- df_immobilien %>% group_by(Lage, Verkaufsjahr) %>% summarise(mean_year=mean(Z_Verkaufspreis))
+
+cagr <- c()
+for (bezirk in levels(df_immobilien_grouped_lage$Lage)) {
+  min_year = min(df_immobilien_grouped_lage[df_immobilien_grouped_lage["Lage"] == bezirk, ]$Verkaufsjahr)
+  max_year = max(df_immobilien_grouped_lage[df_immobilien_grouped_lage["Lage"] == bezirk, ]$Verkaufsjahr)
+  growth <- ((df_immobilien_grouped_lage[(df_immobilien_grouped_lage["Lage"] == bezirk & df_immobilien_grouped_lage["Verkaufsjahr"] == max_year), ]$mean_year / df_immobilien_grouped_lage[(df_immobilien_grouped_lage["Lage"] == bezirk & df_immobilien_grouped_lage["Verkaufsjahr"] == min_year), ]$mean_year)**(1/(max_year-min_year))-1)*100
+  cagr <- append(cagr, growth)
+}
+lage <- levels(df_immobilien_grouped_lage$Lage)
+df_cagr_lage <- tibble(lage, cagr)
 ```
 
 ```{r}
-df_immobilien
+library(ggplot2)
+p <- ggplot(df_cagr_lage, aes(reorder(lage, cagr), cagr))+geom_col( width = 0.9)+labs(x="lage",title="Compound Annual Growth Rage (CAGR) nach Bezirke")
+p <- p + coord_flip()
+p
 ```
+
+Der vorangehende Barplot zeigt die CAGR nach Bezirken pro Jahr. Hier kann man sehen das die Bezirke sechs und sieben überdurchschnittliches Wachstum erfahren haben. Die Bezirke 1, 8 und 25 dagegen ngatives Wachstum erfahren haben. Dem Wachstum entsprechend empfielt es sich Immobilien aus den Top 5 aus dieser Grafik zu kaufen. Um weitere Erkenntnis über die Preisentwicklung zu bekommen wird in der nachfolgenden die Entwicklung der Top 5 Wachstumsstärksten Bezirke über die vier Verkaufsjahre betrachtet.
+
+```{r}
+df_cagr_lage <- arrange(df_cagr_lage, cagr)
+
+p <- ggplot(data=filter(df_immobilien_grouped_lage, Lage %in% tail(df_cagr_lage, 5)$lage), aes(x=Verkaufsjahr, y=mean_year, group=Lage, color=Lage))+geom_point()+geom_line()
+p
+```
+
+Betrachtet man den durchschnittlichen Verkaufspreis der Top 5 wachstumsstärksten Bezirke über die vier Verkaufsjahre, erkennt man das Immobilien aus den Bezirken sechs und vierundzwanzig im Durchschnitt die höchsten Verkaufspreise erzielen. Dabei hat der durchschnittliche Verkaufspreis in Bezirk sieben ein enormes Wachstum im Jahr 2022 erfahren. Die Bezirke sechs und vierzehn erfuhren stetiges Wachstum pber die abgebildeten Jahre und sind somit eine sicherere Investition als beispielsweise die Bezirke zwei und sieben, bei welchen der Verkaufspreis stark schwankt.
+
+Somit kann man je nach Investorprofil entweder in die stabilen Bezirke sechs, vierzehn und vierundzwanzig investieren oder bei Risikofreudigeren Investoren un die Bezirke zwei und sieben.
+
+### **Aus welchem Baujahr sind Häuser besonders begehrt?**
+
+```{r}
+df_immobilien_grouped_Baujahr <- df_immobilien %>% group_by(Baujahr) %>% tally()
+df_immobilien_grouped_Baujahr <- arrange(df_immobilien_grouped_Baujahr, n)
+p <- ggplot(tail(df_immobilien_grouped_Baujahr, 25), aes(Baujahr, n))+geom_col( width = 1)+labs(x="Baujahr",title="Top 25: Anzahl der Transaktionen nach Baujahr")+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_x_continuous("Baujahr", labels = as.character(tail(df_immobilien_grouped_Baujahr, 25)$Baujahr), breaks = tail(df_immobilien_grouped_Baujahr, 25)$Baujahr)
+p
+```
+
+Im vorangehenden Balkendiagramm werden die Top 25 Baujahre mit den meisten Transaktionen dargestellt. Hier kann man erkennen dass vor allem Häuser aus dem 21 Jahrhundert viele Transaktionen erfahren. Auch die Zeitperiode zwischen 1966 und 1990 erfahren viele Transaktionen. Daraus kann man auf die Beliebtheit der Gebäude schließen. Im folgenden Plot bertachten wir den durchschnittlichen verkaufspreis der Jahre.
+
+```{r}
+df_immobilien_grouped_Baujahr_preis <- filter(df_immobilien, Baujahr %in% tail(df_immobilien_grouped_Baujahr, 25)$Baujahr) %>% group_by(Baujahr) %>% summarise(mean_Baujahr=mean(Z_Verkaufspreis))
+```
+
+```{r}
+p <- ggplot(df_immobilien_grouped_Baujahr_preis, aes(Baujahr, mean_Baujahr))+geom_col( width = 1)+labs(x="Baujahr", y="Verkaufspeis",title="Top 25: Durchschnittlicher Varkaufspreis nach Baujahr")+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+scale_x_continuous("Baujahr", labels = as.character(tail(df_immobilien_grouped_Baujahr_preis, 25)$Baujahr), breaks = tail(df_immobilien_grouped_Baujahr_preis, 25)$Baujahr)
+p
+```
+
+Betrachten wir die im Vorigen erläuterten Top 25 Baujahre erkennen wir das neuere Immobilien generell einen höheren Verkaufspreis erzielen als alte Immobilien.
+
+Somit sollte in Immobilien aus dem 21 Jahrhundert investiert werden, da diese die höchsten Verkaufspreise und die meisten Transaktionen aufweisen. Von dieser Empfehlung sind Häuser, die interessant für Liebhaber sind. Im diesem Falle ist diese empfelung nichtmehr anwendbar.
+
+### 
