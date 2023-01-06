@@ -15,7 +15,7 @@ Der Datensatz besteht aus 2342 Zeilen und 21 Spalten. Die Beschreibung des Dates
 
 ```{r}
 # Import der Daten 
-df_immobilien <- read.csv(file="Dataset/data_for_training.csv", sep=";")
+df_immobilien <- read.csv(file="Dataset/dataset_immobilien.csv", sep=";")
 print(paste("Shape: (", nrow(df_immobilien), ",", ncol(df_immobilien), ")"))
 ```
 
@@ -112,19 +112,11 @@ Die folgenden Hypothesen sollen dabei genauer betrachtet werden:
 
     In dieser Frage soll Aufschluss über den Zusammenhang zwischen dem Gebiet der Immobilie und dem Kaufpreis gewonnen werden. Welche Gebiete haben besonders teure Immobilien? Zusätzlich ist für eine Investition wichtig, in Gebieten zu kaufen in welchen sich der Kaufpreis in Zukunft erhöhen wird. Somit stellt sich die Frage welche Gebiete in der Vergangenheit eine Preiserhöhung erfahren haben.
 
-    Bei der Wahl des Bezirks werden sich Wachstum und die zu Verkauf stehenden Immobilien gegensätzlich verhalten, da der Verkaufspreis mit der Knappheit des Gutes steigt.
-
 -   **Aus welchem Baujahr sind Häuser besonders begehrt?**
 
     Mit dieser Frage sollen Zeitperioden herausgefunden werden in welchen Häuser aufgrund ihres Baujahrs einen hohen Preis erzielen.
 
     Die Erwartung ist, das neue Häuser generell einen höheren Verkaufspreis erzielen. Jedoch können alte Häuser, welche Renoviert sind für liebhaber Attraktive Immobilien sein, welche demnach einen hohen Verkaufspreis erzielen.
-
--   **Im welchen Verhältnis steht der Kaufpreis eines Neubaus mit der einer renovierten Immobilie?**
-
-    Anhand des Verhältnisses soll bestimmt werden, wie sehr sich der Kaufpreis einer umgebauten Immobilie im gleichen Jahr eines Neubaus zu dem unterscheidet. Die Erkenntnis dient zur Verständigung wie viel Wert ein Neubau einer durchschnittlichen neuen umgebauten Immobilien hat.
-
-    Neubauten werden höhere Preise erzielen als renovierte Häuser.
 
 ## Laden der Daten
 
@@ -271,4 +263,44 @@ Betrachten wir die im Vorigen erläuterten Top 25 Baujahre erkennen wir das neue
 
 Somit sollte in Immobilien aus dem 21 Jahrhundert investiert werden, da diese die höchsten Verkaufspreise und die meisten Transaktionen aufweisen. Von dieser Empfehlung sind Häuser, die interessant für Liebhaber sind. Im diesem Falle ist diese empfelung nichtmehr anwendbar.
 
-### 
+### Lineare Regression  des Datensatzes 
+
+Im folgenden wird eine Lineare Regression durchgeführt um Features festzustellen, welche den größten Einfluss auf den Kaufpreis des Hauses haben.
+
+```{r}
+library(readxl)
+num_cols <- unlist(lapply(df_immobilien, is.numeric))
+df_immobilien_numeric <- df_immobilien[ , num_cols]
+features <- colnames(df_immobilien_numeric)
+target <- c("Z_Verkaufspreis")
+features <- features[! features %in% target]
+
+linearmodel <- lm(Z_Verkaufspreis~AnzahlZimmer+Ausbaustufe+Baeder+BaederKG+Baujahr+EG_qm+Garage_qm+Garagen+Gesamteindruck+Keller_Typ_qm+Keller_qm+Kellerhoehe+Kellertyp+Lage+OG_qm+Umgebaut+Verkaufsjahr+Verkaufsmonat+Wohnflaeche_qm, data = df_immobilien)
+```
+
+```{r}
+features <- c("Intercept", "AnzahlZimmer", "Ausbaustufe2 Ebenen", "Ausbaustufe3 Ebenen","Baeder","BaederKG","Baujahr","EG_qm","Garage_qm","Garagen","Gesamteindruck2","Gesamteindruck3",
+"Gesamteindruck4","Gesamteindruck5","Keller_Typ_qm","Keller_qm","KellerhoeheGut","KellerhoeheSchlecht","KellerhoeheSehr gut","KellerhoeheSehr Schlecht","KellertypGuter Wohnraum","KellertypKein Wohnraum","KellertypMittlerer Wohnraum","KellertypNiedrige Qualität","KellertypRohbau","LageBezirk 10","LageBezirk 11","LageBezirk 12","LageBezirk 13","LageBezirk 14","LageBezirk 15","LageBezirk 16","LageBezirk 17","LageBezirk 18","LageBezirk 19","LageBezirk 2","LageBezirk 20","LageBezirk 21","LageBezirk 22","LageBezirk 23","LageBezirk 24","LageBezirk 25","LageBezirk 26","LageBezirk 27","LageBezirk 3","LageBezirk 4","LageBezirk 5","LageBezirk 6","LageBezirk 7","LageBezirk 8","LageBezirk 9 ","OG_qm","Umgebaut","Verkaufsjahr","Verkaufsmonat","Wohnflaeche_qm")
+coeff <- summary(linearmodel)$coefficients[, "Estimate"]
+df_coeff <- tibble(features, coeff)
+df_coeff <- arrange(df_coeff, coeff)
+p <- ggplot(tail(df_coeff, 10), aes(reorder(features, coeff), coeff))+geom_col( width = 0.9)+labs(x="features",title="Top 10: Koeffizienten der Linearen Regression")
+p <- p + coord_flip()
+p
+```
+
+Wir betrachten die Top 10 Features, welche den Größten Einfluss auf den Kaufpreis haben. Dabei stellt sich heraus, dass die Lage der Immobilie den größten Einfluss auf den Wert dieser hat. Von den Top 10 Features sind sechs Standorte (One Hot Encoded). Wenn eine Immobile im Bezirk 11 ist erhöht dies den Kaufpreis um etwa 118 Tausend Euro. Dies ist in sofern überraschend, da dieser Bezirk nicht unter den Top 5 Bezirke mit größtem Wachstum befinet. Zusätzlich erfuhr der Bezirk 11 überhaupt kein Wachstum innerhalb der vier Jahre.
+
+Der nächstwichtigste Faktor ist der Gesamteindruck der Immobilie. Drei der zehn Features sind dabei One Hot encodete Gesamteindruck Features. Wenn die Immobilie den Gesamteindruck 5 (sehr gut) besitzt erhöht dies den Preis um etwa 60 Tausend Euro.
+
+Das drittwichtigste Feature ist die Kellerhöhe. Eine Kellerhöhe von Sehr gut (250 cm) entspricht hierbei eine Preiserhöhung von etwa 42700 Euro.
+
+Somit sollten beim Kauf einer Immobilie vor allem auf die Features der Lage, des Gesamteindrucks und der Kellerhöhe geachtet werden.
+
+## Zusammenfassung
+
+Es hat sich ergeben das die Bezirke 2, 6, 7, 14 und 24 das größte Wachstum erfahren haben. Und wenn man den Trend dieser betrachtet, entwickelt sich der durchschnittliche Kaufpreis weiterhin nach oben. Somit sin Investitionen in diese Bezirke empfehlenswert.
+
+Die Untersuchung der Baujahre hat ergeben das sich die Hypothese bestätigt hat und neue Häuser einen höheren Kaufpreis erzielen. Das Liebhaber-Phänomen ist aus den Daten nicht erkennbar und somit für die Kaufentscheidung irrelevant. Dies ist überraschend da die Vermutung aufgestellt wurde, dass alte Häuse im Wert steigen, da diese Attraktiv für Liebhaber sind.
+
+Die Lineare Regression hat ergeben, dass im wesentliche die drei Features Lage, Gesamteindruck und Kellerhöhe den Größten Einfluss auf den Verkaufspreis haben. Demnach ist auf diese Features besonders Wert zu legen
