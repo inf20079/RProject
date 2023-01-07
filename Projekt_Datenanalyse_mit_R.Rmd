@@ -263,7 +263,7 @@ Betrachten wir die im Vorigen erläuterten Top 25 Baujahre erkennen wir das neue
 
 Somit sollte in Immobilien aus dem 21 Jahrhundert investiert werden, da diese die höchsten Verkaufspreise und die meisten Transaktionen aufweisen. Von dieser Empfehlung sind Häuser, die interessant für Liebhaber sind. Im diesem Falle ist diese empfelung nichtmehr anwendbar.
 
-### Lineare Regression  des Datensatzes 
+### Lineare Regression des Datensatzes
 
 Im folgenden wird eine Lineare Regression durchgeführt um Features festzustellen, welche den größten Einfluss auf den Kaufpreis des Hauses haben.
 
