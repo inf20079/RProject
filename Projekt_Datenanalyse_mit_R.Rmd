@@ -133,7 +133,7 @@ library(skimr)
 skim(df_immobilien)
 ```
 
-Alle Features besitzen kein Nullwerte und sind vollständig. Nun müssen die Features im einzelnen betrachtet werden um potentielle Null Werte zu entfernen. wDer Datensatz besitzt zusätzlich keine Ordnung der Daten.
+Alle Features besitzen kein Nullwerte und sind vollständig. Nun müssen die Features im einzelnen betrachtet werden um potentielle Null Werte zu entfernen. Der Datensatz besitzt zusätzlich keine Ordnung der Daten.
 
 ```{r}
 cat_cols <- c("Ausbaustufe", "Gesamteindruck", "Kellerhoehe", "Kellertyp", "Lage")
@@ -221,7 +221,7 @@ df_cagr_lage <- tibble(lage, cagr)
 
 ```{r}
 library(ggplot2)
-p <- ggplot(df_cagr_lage, aes(reorder(lage, cagr), cagr))+geom_col( width = 0.9)+labs(x="lage",title="Compound Annual Growth Rage (CAGR) nach Bezirke")
+p <- ggplot(df_cagr_lage, aes(reorder(lage, cagr), cagr))+geom_col( width = 0.9)+labs(x="lage",title="Compound Annual Growth Rate (CAGR) nach Bezirke")
 p <- p + coord_flip()
 p
 ```
@@ -235,9 +235,9 @@ p <- ggplot(data=filter(df_immobilien_grouped_lage, Lage %in% tail(df_cagr_lage,
 p
 ```
 
-Betrachtet man den durchschnittlichen Verkaufspreis der Top 5 wachstumsstärksten Bezirke über die vier Verkaufsjahre, erkennt man das Immobilien aus den Bezirken sechs und vierundzwanzig im Durchschnitt die höchsten Verkaufspreise erzielen. Dabei hat der durchschnittliche Verkaufspreis in Bezirk sieben ein enormes Wachstum im Jahr 2022 erfahren. Die Bezirke sechs und vierzehn erfuhren stetiges Wachstum pber die abgebildeten Jahre und sind somit eine sicherere Investition als beispielsweise die Bezirke zwei und sieben, bei welchen der Verkaufspreis stark schwankt.
+Betrachtet man den durchschnittlichen Verkaufspreis der Top 5 wachstumsstärksten Bezirke über die vier Verkaufsjahre, erkennt man das Immobilien aus den Bezirken sechs und vierundzwanzig im Durchschnitt die höchsten Verkaufspreise erzielen. Dabei hat der durchschnittliche Verkaufspreis in Bezirk sieben ein enormes Wachstum im Jahr 2022 erfahren. Die Bezirke sechs und vierzehn erfuhren stetiges Wachstum aber die abgebildeten Jahre und sind somit eine sicherere Investition als beispielsweise die Bezirke zwei und sieben, bei welchen der Verkaufspreis stark schwankt.
 
-Somit kann man je nach Investorprofil entweder in die stabilen Bezirke sechs, vierzehn und vierundzwanzig investieren oder bei Risikofreudigeren Investoren un die Bezirke zwei und sieben.
+Somit kann man je nach Investorprofil entweder in die stabilen Bezirke sechs, vierzehn und vierundzwanzig investieren oder bei risikofreudigeren Investoren un die Bezirke zwei und sieben.
 
 ### **Aus welchem Baujahr sind Häuser besonders begehrt?**
 
@@ -248,7 +248,7 @@ p <- ggplot(tail(df_immobilien_grouped_Baujahr, 25), aes(Baujahr, n))+geom_col( 
 p
 ```
 
-Im vorangehenden Balkendiagramm werden die Top 25 Baujahre mit den meisten Transaktionen dargestellt. Hier kann man erkennen dass vor allem Häuser aus dem 21 Jahrhundert viele Transaktionen erfahren. Auch die Zeitperiode zwischen 1966 und 1990 erfahren viele Transaktionen. Daraus kann man auf die Beliebtheit der Gebäude schließen. Im folgenden Plot bertachten wir den durchschnittlichen verkaufspreis der Jahre.
+Im vorangehenden Balkendiagramm werden die Top 25 Baujahre mit den meisten Transaktionen dargestellt. Hier kann man erkennen dass vor allem Häuser aus dem 21 Jahrhundert viele Transaktionen erfahren. Auch die Zeitperiode zwischen 1966 und 1990 erfahren viele Transaktionen. Daraus kann man auf die Beliebtheit der Gebäude schließen. Im folgenden Plot bertachten wir den durchschnittlichen Verkaufspreis der Jahre.
 
 ```{r}
 df_immobilien_grouped_Baujahr_preis <- filter(df_immobilien, Baujahr %in% tail(df_immobilien_grouped_Baujahr, 25)$Baujahr) %>% group_by(Baujahr) %>% summarise(mean_Baujahr=mean(Z_Verkaufspreis))
@@ -261,7 +261,7 @@ p
 
 Betrachten wir die im Vorigen erläuterten Top 25 Baujahre erkennen wir das neuere Immobilien generell einen höheren Verkaufspreis erzielen als alte Immobilien.
 
-Somit sollte in Immobilien aus dem 21 Jahrhundert investiert werden, da diese die höchsten Verkaufspreise und die meisten Transaktionen aufweisen. Von dieser Empfehlung sind Häuser, die interessant für Liebhaber sind. Im diesem Falle ist diese empfelung nichtmehr anwendbar.
+Somit sollte in Immobilien aus dem 21 Jahrhundert investiert werden, da diese die höchsten Verkaufspreise und die meisten Transaktionen aufweisen. Von dieser Empfehlung sind Häuser, die interessant für Liebhaber sind. Im diesem Falle ist diese Empfelung nichtmehr anwendbar.
 
 ### Lineare Regression des Datensatzes
 
@@ -299,7 +299,7 @@ Somit sollten beim Kauf einer Immobilie vor allem auf die Features der Lage, des
 
 ## Zusammenfassung
 
-Es hat sich ergeben das die Bezirke 2, 6, 7, 14 und 24 das größte Wachstum erfahren haben. Und wenn man den Trend dieser betrachtet, entwickelt sich der durchschnittliche Kaufpreis weiterhin nach oben. Somit sin Investitionen in diese Bezirke empfehlenswert.
+Es hat sich ergeben das die Bezirke 2, 6, 7, 14 und 24 das größte Wachstum erfahren haben. Und wenn man den Trend dieser betrachtet, entwickelt sich der durchschnittliche Kaufpreis weiterhin nach oben. Somit sind Investitionen in diese Bezirke empfehlenswert.
 
 Die Untersuchung der Baujahre hat ergeben das sich die Hypothese bestätigt hat und neue Häuser einen höheren Kaufpreis erzielen. Das Liebhaber-Phänomen ist aus den Daten nicht erkennbar und somit für die Kaufentscheidung irrelevant. Dies ist überraschend da die Vermutung aufgestellt wurde, dass alte Häuse im Wert steigen, da diese Attraktiv für Liebhaber sind.
 
